@@ -1,4 +1,4 @@
-package exercises.firstprinciplesint
+package com.oleksiihytsiv.scala3snippets.firstprinciplesint
 
 abstract class Nat:
   def isZero: Boolean
