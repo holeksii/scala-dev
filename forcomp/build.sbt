@@ -1,7 +1,7 @@
 course := "progfun1"
 assignment := "forcomp"
 
-scalaVersion := "3.3.0"
+scalaVersion := "3.1.0"
 
 scalacOptions ++= Seq("-language:implicitConversions", "-deprecation")
 

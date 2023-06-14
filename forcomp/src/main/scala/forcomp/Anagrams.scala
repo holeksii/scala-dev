@@ -105,7 +105,7 @@ object Anagrams extends AnagramsInterface:
   def subtract(x: Occurrences, y: Occurrences): Occurrences =
     val yMap = y.toMap
     (for (char, freq) <- x
-    yield (char, freq - yMap.get(char).getOrElse(0)))
+    yield (char, freq - yMap.getOrElse(char, 0)))
       .filter((char, freq) => freq != 0)
 
   /** Returns a list of all anagram sentences of the given sentence.
