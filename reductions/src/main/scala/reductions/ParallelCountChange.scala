@@ -91,6 +91,5 @@ object ParallelCountChange extends ParallelCountChangeInterface:
     */
   def combinedThreshold(startingMoney: Int, allCoins: List[Int]): Threshold =
     (money: Int, coins: List[Int]) =>
-      if money * (allCoins.length - coins.length) <= startingMoney * allCoins.length / 2
-      then true
+      if money * coins.length <= startingMoney * allCoins.length / 2 then true
       else false
