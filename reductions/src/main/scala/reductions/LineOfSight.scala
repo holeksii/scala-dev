@@ -34,11 +34,13 @@ enum Tree(val maxPrevious: Float):
 
 object LineOfSight extends LineOfSightInterface:
 
+  def max(x1: Float, x2: Float) = if x1 > x2 then x1 else x2
+
   def lineOfSight(input: Array[Float], output: Array[Float]): Unit =
     var maxAngle = 0f
     for i <- 1 until input.length do
       val angle = input(i) / i
-      maxAngle = angle.max(maxAngle)
+      if angle > maxAngle then maxAngle = angle
       output(i) = maxAngle
 
   /** Traverses the specified part of the array and returns the maximum angle.
@@ -47,7 +49,7 @@ object LineOfSight extends LineOfSightInterface:
     var maxAngle = 0f
     for i <- from until until do
       val angle = input(i) / i
-      maxAngle = angle.max(maxAngle)
+      if angle > maxAngle then maxAngle = angle
     maxAngle
 
   /** Traverses the part of the array starting at `from` and until `end`, and
@@ -83,7 +85,7 @@ object LineOfSight extends LineOfSightInterface:
     var maxAngle = startingAngle
     for i <- from until until do
       val angle = input(i) / i
-      maxAngle = angle.max(maxAngle)
+      if angle > maxAngle then maxAngle = angle
       output(i) = maxAngle
 
   /** Pushes the maximum angle in the prefix of the array to each leaf of the
