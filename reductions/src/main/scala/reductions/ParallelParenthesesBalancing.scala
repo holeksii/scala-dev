@@ -79,16 +79,3 @@ object ParallelParenthesesBalancing
 
   // For those who want more:
   // Prove that your reduction operator is associative!
-
-@main def main =
-  val n = 1_000
-  val str = """(if (zero? x) max (/ 1 x))
-I told him (that it's not (yet) done). (But he wasn't listening)""" * n
-
-  println {
-    ParallelParenthesesBalancing.balance(str.toCharArray)
-  }
-
-  println {
-    ParallelParenthesesBalancing.parBalance(str.toCharArray, n)
-  }
