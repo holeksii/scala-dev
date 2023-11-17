@@ -12,51 +12,45 @@ import scala.collection.parallel.CollectionConverters.*
 class Simulator(val taskSupport: TaskSupport, val timeStats: TimeStatistics):
 
   def updateBoundaries(boundaries: Boundaries, body: Body): Boundaries =
-    val newMinX = math.min(boundaries.minX, body.x)
-    val newMinY = math.min(boundaries.minY, body.y)
-    val newMaxX = math.max(boundaries.maxX, body.x)
-    val newMaxY = math.max(boundaries.maxY, body.y)
-    val newBoundaries = Boundaries()
-    newBoundaries.minX = newMinX
-    newBoundaries.minY = newMinY
-    newBoundaries.maxX = newMaxX
-    newBoundaries.maxY = newMaxY
-    newBoundaries
+    boundaries.minX = math.min(boundaries.minX, body.x)
+    boundaries.minY = math.min(boundaries.minY, body.y)
+    boundaries.maxX = math.max(boundaries.maxX, body.x)
+    boundaries.maxY = math.max(boundaries.maxY, body.y)
+    boundaries
 
   def mergeBoundaries(a: Boundaries, b: Boundaries): Boundaries =
-    val newMinX = math.min(a.minX, b.minX)
-    val newMinY = math.min(a.minY, b.minY)
-    val newMaxX = math.max(a.maxX, b.maxX)
-    val newMaxY = math.max(a.maxY, b.maxY)
-    val newBoundaries = Boundaries()
-    newBoundaries.minX = newMinX
-    newBoundaries.minY = newMinY
-    newBoundaries.maxX = newMaxX
-    newBoundaries.maxY = newMaxY
-    newBoundaries
+    a.minX = math.min(a.minX, b.minX)
+    a.minY = math.min(a.minY, b.minY)
+    a.maxX = math.max(a.maxX, b.maxX)
+    a.maxY = math.max(a.maxY, b.maxY)
+    a
 
   def computeBoundaries(bodies: coll.Seq[Body]): Boundaries =
     timeStats.timed("boundaries") {
       val parBodies = bodies.par
       parBodies.tasksupport = taskSupport
-      parBodies.aggregate(Boundaries())(updateBoundaries, mergeBoundaries)
+      parBodies.aggregate(new Boundaries)(updateBoundaries, mergeBoundaries)
     }
 
+  // Hint: aggregate the SectorMatrix from the sequence of bodies, the same way it was used for boundaries.
+  // Use the SECTOR_PRECISION constant when creating a new SectorMatrix.
   def computeSectorMatrix(
       bodies: coll.Seq[Body],
       boundaries: Boundaries
   ): SectorMatrix = timeStats.timed("matrix") {
     val parBodies = bodies.par
     parBodies.tasksupport = taskSupport
-    val sectorMatrix = SectorMatrix(boundaries, SECTOR_PRECISION)
-    parBodies.foreach(sectorMatrix += _)
-    sectorMatrix
+    parBodies.aggregate(new SectorMatrix(boundaries, SECTOR_PRECISION))(
+      _ += _,
+      _ combine _
+    )
   }
 
   def computeQuad(sectorMatrix: SectorMatrix): Quad = timeStats.timed("quad") {
     sectorMatrix.toQuad(taskSupport.parallelismLevel)
   }
 
+  // Recall that we already implemented the updated method which updates a single body.
   def updateBodies(bodies: coll.Seq[Body], quad: Quad): coll.Seq[Body] =
     timeStats.timed("update") {
       val parBodies = bodies.par

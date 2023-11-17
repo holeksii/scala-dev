@@ -57,35 +57,31 @@ case class Fork(
     sw: Quad,
     se: Quad
 ) extends Quad:
-  val centerX: Float = (nw.centerX + ne.centerX) / 2
-  val centerY: Float = (nw.centerY + sw.centerY) / 2
-  val size: Float = nw.size + ne.size
-  val mass: Float = nw.mass + ne.mass + sw.mass + se.mass
-  val total: Int = nw.total + ne.total + sw.total + se.total
+  val centerX: Float =
+    (nw.centerX + ne.centerX + sw.centerX + se.centerX) / 4
+  val centerY: Float =
+    (nw.centerY + ne.centerY + sw.centerY + se.centerY) / 4
+  val size: Float =
+    2 * nw.size
+  val mass: Float =
+    nw.mass + ne.mass + sw.mass + se.mass
+  val total: Int =
+    nw.total + ne.total + sw.total + se.total
   val massX: Float =
-    if mass == 0 then centerX
-    else if total == 1 then
-      List(nw, ne, sw, se)
-        .filter(_.isInstanceOf[Leaf])(0)
-        .massX
+    if total == 0 then centerX
     else
-      (nw.massX * nw.centerX + ne.massX * ne.centerX + sw.massX * sw.centerX + se.massX * se.centerX) / mass
+      (nw.mass * nw.massX + ne.mass * ne.massX + sw.mass * sw.massX + se.mass * se.massX) / mass
 
   val massY: Float =
-    if mass == 0 then centerY
-    else if total == 1 then
-      List(nw, ne, sw, se)
-        .filter(_.isInstanceOf[Leaf])(0)
-        .massY
+    if total == 0 then centerY
     else
-      (nw.massY * nw.centerY + ne.massY * ne.centerY + sw.massY * sw.centerY + se.massY * se.centerY) / mass
+      (nw.mass * nw.massY + ne.mass * ne.massY + sw.mass * sw.massY + se.mass * se.massY) / mass
 
   def insert(b: Body): Fork =
-    if b.x <= nw.size && b.y <= nw.size then Fork(nw.insert(b), ne, sw, se)
-    else if b.x <= nw.size + ne.size && b.y <= ne.size then
-      Fork(nw, ne.insert(b), sw, se)
-    else if b.x <= nw.size + sw.size && b.y <= sw.size then
-      Fork(nw, ne, sw.insert(b), se)
+    if b.x < centerX then
+      if b.y < centerY then Fork(nw.insert(b), ne, sw, se)
+      else Fork(nw, ne, sw.insert(b), se)
+    else if b.y < centerY then Fork(nw, ne.insert(b), sw, se)
     else Fork(nw, ne, sw, se.insert(b))
 
 case class Leaf(
@@ -95,27 +91,24 @@ case class Leaf(
     bodies: coll.Seq[Body]
 ) extends Quad:
   val (mass, massX, massY) =
-    if bodies.size == 1 then
-      val b = bodies(0)
-      (b.mass, b.x, b.y)
-    else
-      val totalMass = bodies.foldLeft(0f)((acc, b) => acc + b.mass)
-      (
-        totalMass,
-        bodies.foldLeft(0f)((acc, b) => acc + b.mass * b.x) / mass: Float,
-        bodies.foldLeft(0f)((acc, b) => acc + b.mass * b.y) / mass: Float
-      )
+    val totalMass = bodies.foldLeft(0f)(_ + _.mass)
+    val totalMassX =
+      bodies.foldLeft(0f)((acc, b) => acc + b.mass * b.x) / totalMass
+    val totalMassY =
+      bodies.foldLeft(0f)((acc, b) => acc + b.mass * b.y) / totalMass
+    (totalMass, totalMassX, totalMassY)
 
   val total: Int = bodies.size
   def insert(b: Body): Quad =
     if size > minimumSize then
+      val quarter = size / 4
       val fork = Fork(
-        Empty(centerX / 2, centerY / 2, size / 2),
-        Empty(centerX / 2, centerY / 2, size / 2),
-        Empty(centerX / 2, centerY / 2, size / 2),
-        Empty(centerX / 2, centerY / 2, size / 2)
-      ).insert(b)
-      bodies.foldLeft(fork)((acc, b) => acc.insert(b))
+        Empty(centerX - quarter, centerY - quarter, size / 2),
+        Empty(centerX + quarter, centerY - quarter, size / 2),
+        Empty(centerX - quarter, centerY + quarter, size / 2),
+        Empty(centerX + quarter, centerY + quarter, size / 2)
+      )
+      (bodies :+ b).foldLeft(fork)(_ insert _)
     else Leaf(centerX, centerY, size, bodies :+ b)
 
 def minimumSize = 0.00001f
@@ -168,20 +161,16 @@ class Body(
 
     def traverse(quad: Quad): Unit = (quad: Quad) match
       case Empty(_, _, _) => ()
-      // no force
       case Leaf(_, _, _, bodies) =>
         bodies.foreach(b => addForce(b.mass, b.x, b.y))
-      // add force contribution of each body by calling addForce
       case Fork(nw, ne, sw, se) =>
-        if quad.size / distance(quad.centerX, quad.centerY, x, y) < theta then
+        if quad.size / distance(quad.massX, quad.massY, x, y) < theta then
           addForce(quad.mass, quad.massX, quad.massY)
         else
           traverse(nw)
           traverse(ne)
           traverse(sw)
           traverse(se)
-      // see if node is far enough from the body,
-      // or recursion is needed
 
     traverse(quad)
 
